@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TechZone - متجر الإلكترونيات</title>
+    <style>
+        :root {
+            --primary-color: #0d233a; 
+            --accent-color: #1a3a5f;
+            --background-color: #f9f9f7; 
+            --text-color: #333;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--background-color); color: var(--text-color); padding-bottom: 60px; }
+
+        /* الهيدر والشعار */
+        header { background: white; text-align: center; padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .logo-area { display: inline-block; cursor: pointer; user-select: none; }
+        .logo-img { max-height: 90px; display: block; margin: 0 auto; }
+
+        /* شريط الأقسام */
+        .categories-bar { max-width: 1200px; margin: 20px auto 0 auto; padding: 0 20px; display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; }
+        .categories-bar::-webkit-scrollbar { display: none; }
+        .category-btn { background: white; border: 1px solid #ddd; padding: 8px 16px; border-radius: 20px; cursor: pointer; white-space: nowrap; font-weight: bold; transition: 0.3s; color: var(--text-color); }
+        .category-btn.active, .category-btn:hover { background: var(--primary-color); color: white; border-color: var(--primary-color); }
+
+        /* حاوية المنتجات */
+        .container { max-width: 1200px; margin: 20px auto; padding: 0 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+        .product-card { background: white; border-radius: 8px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); text-align: center; display: flex; flex-direction: column; justify-content: space-between; position: relative; }
+        .product-card .img-container { width: 100%; height: 180px; margin-bottom: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #fafafa; border-radius: 5px; }
+        .product-card img { max-width: 100%; max-height: 100%; object-fit: contain; transition: 0.3s; }
+        .product-card .img-container:hover img { transform: scale(1.05); }
+        .product-badge { position: absolute; top: 10px; right: 10px; background: rgba(13, 35, 58, 0.1); color: var(--primary-color); padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; }
+        .product-title { font-size: 16px; color: #222; margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 44px; text-align: right; }
+        .product-price { color: var(--primary-color); font-weight: bold; margin: 10px 0; text-align: right; font-size: 18px; }
+        
+        .add-btn { background: var(--primary-color); color: white; border: none; padding: 12px; border-radius: 5px; cursor: pointer; width: 100%; transition: 0.3s; font-weight: bold; font-size: 14px; }
+        .add-btn:hover { background: var(--accent-color); }
+
+        /* زر السلة العائم */
+        .cart-badge { position: fixed; bottom: 80px; left: 20px; background: var(--primary-color); color: white; padding: 15px; border-radius: 50%; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); font-size: 20px; z-index: 99; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; }
+        .cart-count { position: absolute; top: -5px; right: -5px; background: red; color: white; font-size: 12px; padding: 3px 7px; border-radius: 50%; }
+
+        /* النوافذ المنبثقة */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 100; justify-content: center; align-items: center; backdrop-filter: blur(3px); }
+        .modal-content { background: white; padding: 25px; border-radius: 10px; width: 90%; max-width: 500px; max-height: 85vh; overflow-y: auto; position: relative; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .close-btn { position: absolute; top: 10px; left: 10px; font-size: 28px; cursor: pointer; color: #666; transition: 0.3s; line-height: 1; }
+        .close-btn:hover { color: #000; }
+        
+        /* استمارة الطلب والتحكم */
+        .form-group { margin-bottom: 15px; text-align: right; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 14px; }
+        
+        /* تفاصيل المنتج المكبرة */
+        .view-img { width: 100%; max-height: 300px; object-fit: contain; margin-bottom: 15px; background: #fafafa; border-radius: 8px; padding: 10px; }
+        .view-title { font-size: 20px; color: var(--primary-color); margin-bottom: 10px; text-align: right; }
+        .view-desc { font-size: 14px; color: #666; line-height: 1.6; margin-bottom: 15px; text-align: right; white-space: pre-line; }
+
+        footer { background: var(--primary-color); color: white; text-align: center; padding: 15px; position: fixed; bottom: 0; width: 100%; font-size: 14px; direction: ltr; z-index: 90; }
+        footer a { color: #5cb8ff; text-decoration: none; }
+
+        .admin-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; font-size: 14px; }
+        .delete-btn { background: red; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-area" id="logo-trigger" title="اضغط 5 مرات لفتح لوحة التحكم">
+            <img src="https://i.ibb.co/VpbySWh2/logo.png" alt="TechZone Logo" class="logo-img">
+        </div>
+    </header>
+
+    <div class="categories-bar" id="categories-bar"></div>
+    <div class="container" id="products-container"></div>
+
+    <div class="cart-badge" onclick="toggleModal('cart-modal')">
+        🛒 <span class="cart-count" id="cart-count">0</span>
+    </div>
+
+    <div id="view-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="toggleModal('view-modal')">&times;</span>
+            <div id="view-modal-body"></div>
+        </div>
+    </div>
+
+    <div id="cart-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="toggleModal('cart-modal')">&times;</span>
+            <h2 style="margin-bottom: 15px; text-align: right;">سلة التسوق</h2>
+            <div id="cart-items"></div>
+            <hr style="margin: 15px 0;">
+            <div style="font-weight: bold; margin-bottom: 15px; text-align: right;">
+                <p style="font-size: 14px; color: #555;">سعر التوصيل (كل المحافظات): 5,000 د.ع</p>
+                <p id="total-price" style="font-size: 18px; color: var(--primary-color); margin-top: 5px;">المجموع الكلي: 0 د.ع</p>
+            </div>
+            
+            <form id="order-form" onsubmit="sendOrder(event)">
+                <div class="form-group">
+                    <label>الاسم الكامل:</label>
+                    <input type="text" id="customer-name" required placeholder="اسم المستلم الثلاثي">
+                </div>
+                <div class="form-group">
+                    <label>رقم الهاتف:</label>
+                    <input type="tel" id="customer-phone" required placeholder="07XXXXXXXXX">
+                </div>
+                <div class="form-group">
+                    <label>العنوان الكامل:</label>
+                    <textarea id="customer-address" required rows="3" placeholder="المحافظة - المنطقة - أقرب نقطة دالة"></textarea>
+                </div>
+                <button type="submit" class="add-btn" style="background: #28a745;">تأكيد الطلب وإرسال عبر تليكرام 🚀</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="admin-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="toggleModal('admin-modal')">&times;</span>
+            <h2 style="text-align: right;">لوحة التحكم المخفية</h2>
+            <hr style="margin: 15px 0;">
+            <form id="add-product-form" onsubmit="addProduct(event)" style="margin-bottom: 20px;">
+                <div class="form-group"><label>اسم المنتج:</label><input type="text" id="p-name" required></div>
+                <div class="form-group"><label>القسم (مثال: ملحقات، سماعات، شواحن):</label><input type="text" id="p-category" required></div>
+                <div class="form-group"><label>السعر (دينار عراقي):</label><input type="number" id="p-price" required></div>
+                <div class="form-group"><label>رابط صورة المنتج المباشر:</label><input type="text" id="p-img" placeholder="رابط ينتهي بـ .jpg أو .png"></div>
+                <div class="form-group"><label>وصف المنتج وتفاصيله الميزات:</label><textarea id="p-desc" rows="4"></textarea></div>
+                <button type="submit" class="add-btn">إضافة المنتج للمتجر</button>
+            </form>
+            <h3 style="text-align: right; margin-bottom: 10px;">المنتجات المعروضة حالياً:</h3>
+            <div id="admin-products-list"></div>
+        </div>
+    </div>
+
+    <footer>
+        المطور: abdalluh al-janadi | الدعم: <a href="tel:0785810639">0785810639</a>
+    </footer>
+
+    <script>
+        const BOT_TOKEN = "8979848659:AAFGxPU4FJ5qcq2QGOIwD8JAyIBm1VaPxGI";
+        const CHAT_ID = "6582567289";
+        const SHIPPING_FEE = 5000;
+
+        const defaultProducts = [
+            { 
+                id: 1, 
+                name: "بطاقة التتبع الذكية للمحافظ والأغراض المهمة", 
+                category: "ملحقات ذكية",
+                price: 25000, 
+                img: "https://i.ibb.co/6R2byXhF/card.jpg", 
+                desc: "ضاعت منك محفظتك من قبل؟\nهسه الحل صار أسهل ✨\n\nبطاقة التتبع الذكية بحجم بطاقة البنك تماماً تنحط داخل المحفظة وتخليك تعرف مكانها فوراً 📍\n\n• تشتغل ويا iPhone و Android\n• مقاومة للماء وشحنها لاسلكي 🔋\n• خلي أغراضك المهمة دائماً تحت السيطرة."
+            }
+        ];
+
+        let products = JSON.parse(localStorage.getItem('techzone_products')) || defaultProducts;
+        let cart = [];
+        let currentCategory = "الكل";
+
+        function displayCategories() {
+            const bar = document.getElementById('categories-bar');
+            const categories = ["الكل", ...new Set(products.map(p => p.category || "عام"))];
+            bar.innerHTML = '';
+            categories.forEach(cat => {
+                const activeClass = cat === currentCategory ? 'active' : '';
+                bar.innerHTML += `<button class="category-btn ${activeClass}" onclick="filterCategory('${cat}')">${cat}</button>`;
+            });
+        }
+
+        function filterCategory(cat) {
+            currentCategory = cat;
+            displayCategories();
+            displayProducts();
+        }
+
+        function displayProducts() {
+            const container = document.getElementById('products-container');
+            container.innerHTML = '';
+            const filtered = currentCategory === "الكل" ? products : products.filter(p => (p.category || "عام") === currentCategory);
+
+            filtered.forEach(p => {
+                container.innerHTML += `
+                    <div class="product-card">
+                        <span class="product-badge">${p.category || "عام"}</span>
+                        <div class="img-container" onclick="viewProduct(${p.id})">
+                            <img src="${p.img}" alt="${p.name}">
+                        </div>
+                        <h3 class="product-title">${p.name}</h3>
+                        <p class="product-price">${p.price.toLocaleString()} د.ع</p>
+                        <button class="add-btn" onclick="addToCart(${p.id})">إضافة إلى السلة 🛒</button>
+                    </div>
+                `;
+            });
+            displayCategories();
+            updateAdminList();
+        }
+
+        function viewProduct(id) {
+            const p = products.find(prod => prod.id === id);
+            if(!p) return;
+            const body = document.getElementById('view-modal-body');
+            body.innerHTML = `
+                <img src="${p.img}" class="view-img" alt="${p.name}">
+                <h3 class="view-title">${p.name}</h3>
+                <div style="text-align:right; margin-bottom:15px;"><span class="product-badge" style="position:static;">القسم: ${p.category || "عام"}</span></div>
+                <p class="product-price" style="margin-bottom:15px;">السعر: ${p.price.toLocaleString()} د.ع</p>
+                <p class="view-desc">${p.desc || "لا يوجد وصف متوفر لهذا المنتج."}</p>
+                <button class="add-btn" onclick="addToCart(${p.id}); toggleModal('view-modal');">إضافة إلى السلة لشراء المنتج 🛒</button>
+            `;
+            toggleModal('view-modal');
+        }
+
+        function toggleModal(id) {
+            const modal = document.getElementById(id);
+            modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        function addToCart(id) {
+            const product = products.find(p => p.id === id);
+            const itemInCart = cart.find(c => c.id === id);
+            if (itemInCart) { itemInCart.qty++; } else { cart.push({ ...product, qty: 1 }); }
+            updateCartUI();
+        }
+
+        function updateCartUI() {
+            document.getElementById('cart-count').innerText = cart.reduce((acc, item) => acc + item.qty, 0);
+            const cartItemsContainer = document.getElementById('cart-items');
+            cartItemsContainer.innerHTML = '';
+            let subtotal = 0;
+
+            cart.forEach(item => {
+                subtotal += item.price * item.qty;
+                cartItemsContainer.innerHTML += `
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:14px;">
+                        <span>🔹 ${item.name} (x${item.qty})</span>
+                        <span style="font-weight:bold;">${(item.price * item.qty).toLocaleString()} د.ع</span>
+                    </div>
+                `;
+            });
+
+            const total = subtotal > 0 ? subtotal + SHIPPING_FEE : 0;
+            document.getElementById('total-price').innerText = `المجموع الكلي: ${total.toLocaleString()} د.ع`;
+        }
+
+        let clickCount = 0;
+        document.getElementById('logo-trigger').addEventListener('click', () => {
+            clickCount++;
+            if (clickCount === 5) {
+                clickCount = 0;
+                toggleModal('admin-modal');
+            }
+            setTimeout(() => { clickCount = 0; }, 2000);
+        });
+
+        function addProduct(e) {
+            e.preventDefault();
+            const name = document.getElementById('p-name').value;
+            const category = document.getElementById('p-category').value.trim();
+            const price = parseInt(document.getElementById('p-price').value);
+            const img = document.getElementById('p-img').value;
+            const desc = document.getElementById('p-desc').value;
+
+            const newProduct = { id: Date.now(), name, category, price, img, desc };
+            products.push(newProduct);
+            localStorage.setItem('techzone_products', JSON.stringify(products));
+            currentCategory = "الكل"; 
+            displayProducts();
+            document.getElementById('add-product-form').reset();
+        }
+
+        function deleteProduct(id) {
+            products = products.filter(p => p.id !== id);
+            localStorage.setItem('techzone_products', JSON.stringify(products));
+            currentCategory = "الكل";
+            displayProducts();
+        }
+
+        function updateAdminList() {
+            const list = document.getElementById('admin-products-list');
+            list.innerHTML = '';
+            products.forEach(p => {
+                list.innerHTML += `
+                    <div class="admin-item">
+                        <span>[${p.category || "عام"}] ${p.name} - ${p.price.toLocaleString()} د.ع</span>
+                        <button class="delete-btn" onclick="deleteProduct(${p.id})">حذف</button>
+                    </div>
+                `;
+            });
+        }
+
+        function sendOrder(e) {
+            e.preventDefault();
+            if (cart.length === 0) { alert('السلة فارغة!'); return; }
+
+            const name = document.getElementById('customer-name').value;
+            const phone = document.getElementById('customer-phone').value;
+            const address = document.getElementById('customer-address').value;
+
+            let itemsText = '';
+            let subtotal = 0;
+            
+            cart.forEach(item => {
+                itemsText += `• ${item.name} (العدد: ${item.qty})\n`;
+                subtotal += item.price * item.qty;
+            });
+
+            const totalMoney = subtotal + SHIPPING_FEE;
+
+            const message = encodeURIComponent(
+`📦 طلب جديد من TechZone!
+━━━━━━━━━━━━━━━
+👤 الاسم: ${name}
+📞 الهاتف: ${phone}
+📍 العنوان: ${address}
+━━━━━━━━━━━━━━━
+🛒 المنتجات المطلوبة:
+${itemsText}
+━━━━━━━━━━━━━━━
+💵 سعر المواد: ${subtotal.toLocaleString()} د.ع
+🚚 التوصيل: 5,000 د.ع (كل المحافظات)
+💰 المجموع الكلي: ${totalMoney.toLocaleString()} د.ع`
+            );
+
+            const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${message}`;
+
+            fetch(url)
+                .then(res => {
+                    if(res.ok) {
+                        alert('تم إرسال طلبك بنجاح! شكراً لتسوقك من TechZone.');
+                        cart = [];
+                        updateCartUI();
+                        toggleModal('cart-modal');
+                        document.getElementById('order-form').reset();
+                    } else {
+                        alert('حدث خطأ أثناء إرسال الطلب.');
+                    }
+                })
+                .catch(() => alert('فشل الاتصال بالشبكة.'));
+        }
+
+        displayProducts();
+    </script>
+</body>
+</html>
