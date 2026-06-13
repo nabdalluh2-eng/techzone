@@ -124,4 +124,252 @@
                 <div class="form-group"><label>وصف المنتج وتفاصيله الميزات:</label><textarea id="p-desc" rows="4"></textarea></div>
                 <button type="submit" class="add-btn">إضافة المنتج للمتجر بشكل دائم 🌐</button>
             </form>
-            <h3 style="text-align:
+            <h3 style="text-align: right; margin-bottom: 10px;">المنتجات المعروضة حالياً:</h3>
+            <div id="admin-products-list"></div>
+        </div>
+    </div>
+
+    <footer>
+        المطور: Abdalluh Al-janabi | الدعم: <a href="tel:0785810639">0785810639</a>
+    </footer>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAsLChC4XA_A87d3dYIIDH9gWoxjM6UiSw",
+            authDomain: "techzone-2d5f7.firebaseapp.com",
+            projectId: "techzone-2d5f7",
+            storageBucket: "techzone-2d5f7.firebasestorage.app",
+            messagingSenderId: "593535201293",
+            appId: "1:593535201293:web:66f5c4677c44395afa544",
+            databaseURL: "https://techzone-2d5f7-default-rtdb.firebaseio.com/"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        const BOT_TOKEN = "8979848659:AAFGxPU4FJ5qcq2QGOIwD8JAyIBm1VaPxGI";
+        const CHAT_ID = "6582567289";
+        const SHIPPING_FEE = 5000;
+
+        const defaultProducts = [
+            { id: 1, name: "كاميرا مراقبة ذكية", category: "كاميرات", price: 20000, img: "https://images2.imgbox.com/71/34/8p2M8YI7_o.png", desc: "كاميرا مراقبة ذكية ومتحركة بدقة عالية.\n• تدعم الرؤية الليلية\n• ربط مباشر على الهاتف عبر الواي فاي\n• استشعار الحركة وإرسال تنبيهات." },
+            { id: 2, name: "جرس باب مدمج بكاميرا", category: "ادوات منزلية ذكية", price: 15000, img: "https://images2.imgbox.com/39/72/7p2WvWvB_o.png", desc: "جرس باب ذكي يتيح لك رؤية من يطرق بابك والتحدث معه مباشرة من هاتفك أينما كنت." },
+            { id: 3, name: "ستاند هاتف مغناطيس", category: "اكسسوارات الهواتف", price: 10000, img: "https://images2.imgbox.com/c4/14/GgD7V4g7_o.png", desc: "ستاند مغناطيسي قوي وثابت جداً للسيارة، يضمن حماية هاتفك وسهولة استخدامه أثناء القيادة." },
+            { id: 4, name: "كار بلاي لاسلكي", category: "مستلزمات السيارات الذكية", price: 65000, img: "https://images2.imgbox.com/d5/4b/vPxlNqfO_o.png", desc: "جهاز تحويل شاشة السيارة إلى نظام كار بلاي وأندرويد أوتو لاسلكي بالكامل بدون وايرات." }
+        ];
+
+        let products = [];
+        let cart = [];
+        let currentCategory = "الكل";
+
+        database.ref('products').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                products = Object.keys(data).map(key => ({ firebaseKey: key, ...data[key] }));
+            } else {
+                products = defaultProducts;
+                defaultProducts.forEach(p => database.ref('products').push(p));
+            }
+            displayProducts();
+        }, (error) => {
+            console.log("Firebase error:", error);
+            products = defaultProducts;
+            displayProducts();
+        });
+
+        function displayCategories() {
+            const bar = document.getElementById('categories-bar');
+            const categories = ["الكل", ...new Set(products.map(p => p.category || "عام"))];
+            bar.innerHTML = '';
+            categories.forEach(cat => {
+                const activeClass = cat === currentCategory ? 'active' : '';
+                bar.innerHTML += `<button class="category-btn ${activeClass}" onclick="filterCategory('${cat}')">${cat}</button>`;
+            });
+        }
+
+        function filterCategory(cat) {
+            currentCategory = cat;
+            displayCategories();
+            displayProducts();
+        }
+
+        function displayProducts() {
+            const container = document.getElementById('products-container');
+            container.innerHTML = '';
+            const filtered = currentCategory === "الكل" ? products : products.filter(p => (p.category || "عام") === currentCategory);
+
+            if(filtered.length === 0) {
+                container.innerHTML = "<p style='grid-column: 1/-1;'>لا توجد منتجات حالياً.</p>";
+                return;
+            }
+
+            filtered.forEach(p => {
+                container.innerHTML += `
+                    <div class="product-card">
+                        <span class="product-badge">${p.category || "عام"}</span>
+                        <div class="img-container" onclick="viewProduct(${p.id})">
+                            <img src="${p.img}" alt="${p.name}" onerror="this.src='https://via.placeholder.com/150?text=TechZone'">
+                        </div>
+                        <h3 class="product-title">${p.name}</h3>
+                        <p class="product-price">${p.price.toLocaleString()} د.ع</p>
+                        <button class="add-btn" onclick="addToCart(${p.id})">إضافة إلى السلة 🛒</button>
+                    </div>
+                `;
+            });
+            displayCategories();
+            updateAdminList();
+        }
+
+        function viewProduct(id) {
+            const p = products.find(prod => prod.id === id);
+            if(!p) return;
+            const body = document.getElementById('view-modal-body');
+            body.innerHTML = `
+                <img src="${p.img}" class="view-img" alt="${p.name}" onerror="this.src='https://via.placeholder.com/150'">
+                <h3 class="view-title">${p.name}</h3>
+                <div style="text-align:right; margin-bottom:15px;"><span class="product-badge" style="position:static;">القسم: ${p.category || "عام"}</span></div>
+                <p class="product-price" style="margin-bottom:15px;">السعر: ${p.price.toLocaleString()} د.ع</p>
+                <p class="view-desc">${p.desc || "لا يوجد وصف متوفر لهذا المنتج."}</p>
+                <button class="add-btn" onclick="addToCart(${p.id}); toggleModal('view-modal');">إضافة إلى السلة لشراء المنتج 🛒</button>
+            `;
+            toggleModal('view-modal');
+        }
+
+        function toggleModal(id) {
+            const modal = document.getElementById(id);
+            modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        function addToCart(id) {
+            const product = products.find(p => p.id === id);
+            const itemInCart = cart.find(c => c.id === id);
+            if (itemInCart) { itemInCart.qty++; } else { cart.push({ ...product, qty: 1 }); }
+            updateCartUI();
+        }
+
+        function updateCartUI() {
+            document.getElementById('cart-count').innerText = cart.reduce((acc, item) => acc + item.qty, 0);
+            const cartItemsContainer = document.getElementById('cart-items');
+            cartItemsContainer.innerHTML = '';
+            let subtotal = 0;
+
+            cart.forEach(item => {
+                subtotal += item.price * item.qty;
+                cartItemsContainer.innerHTML += `
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:14px;">
+                        <span>🔹 ${item.name} (x${item.qty})</span>
+                        <span style="font-weight:bold;">${(item.price * item.qty).toLocaleString()} د.ع</span>
+                    </div>
+                `;
+            });
+
+            const total = subtotal > 0 ? subtotal + SHIPPING_FEE : 0;
+            document.getElementById('total-price').innerText = `المجموع الكلي: ${total.toLocaleString()} د.ع`;
+        }
+
+        let clickCount = 0;
+        document.getElementById('logo-trigger').addEventListener('click', () => {
+            clickCount++;
+            if (clickCount === 5) {
+                clickCount = 0;
+                toggleModal('admin-modal');
+            }
+            setTimeout(() => { clickCount = 0; }, 2000);
+        });
+
+        function addProduct(e) {
+            e.preventDefault();
+            const name = document.getElementById('p-name').value;
+            const category = document.getElementById('p-category').value.trim();
+            const price = parseInt(document.getElementById('p-price').value);
+            const img = document.getElementById('p-img').value || "https://via.placeholder.com/150";
+            const desc = document.getElementById('p-desc').value;
+
+            const newProduct = { id: Date.now(), name, category, price, img, desc };
+            
+            database.ref('products').push(newProduct).then(() => {
+                document.getElementById('add-product-form').reset();
+                alert('تم حفظ المنتج سحابياً وظهر الآن لجميع الزبائن! 🎉');
+            }).catch(err => alert('خطأ في الحفظ'));
+        }
+
+        function deleteProduct(firebaseKey) {
+            if(confirm('هل أنت متأكد من حذف هذا المنتج نهائياً؟')) {
+                if(!firebaseKey) {
+                    alert('يرجى إعادة المحاولة بعد تحديث الصفحة.');
+                    return;
+                }
+                database.ref(`products/${firebaseKey}`).remove().then(() => {
+                    alert('تم الحذف بنجاح.');
+                });
+            }
+        }
+
+        function updateAdminList() {
+            const list = document.getElementById('admin-products-list');
+            list.innerHTML = '';
+            products.forEach(p => {
+                list.innerHTML += `
+                    <div class="admin-item">
+                        <span>[${p.category || "عام"}] ${p.name} - ${p.price.toLocaleString()} د.ع</span>
+                        <button class="delete-btn" onclick="deleteProduct('${p.firebaseKey || ''}')">حذف</button>
+                    </div>
+                `;
+            });
+        }
+
+        function sendOrder(e) {
+            e.preventDefault();
+            if (cart.length === 0) { alert('السلة فارغة!'); return; }
+
+            const name = document.getElementById('customer-name').value;
+            const phone = document.getElementById('customer-phone').value;
+            const address = document.getElementById('customer-address').value;
+
+            let itemsText = '';
+            let subtotal = 0;
+            
+            cart.forEach(item => {
+                itemsText += `• ${item.name} (العدد: ${item.qty})\n`;
+                subtotal += item.price * item.qty;
+            });
+
+            const totalMoney = subtotal + SHIPPING_FEE;
+
+            const message = encodeURIComponent(
+`📦 طلب جديد من TechZone!
+━━━━━━━━━━━━━━━
+👤 الاسم: ${name}
+📞 الهاتف: ${phone}
+📍 العنوان: ${address}
+━━━━━━━━━━━━━━━
+🛒 المنتجات المطلوبة:
+${itemsText}
+━━━━━━━━━━━━━━━
+💵 سعر المواد: ${subtotal.toLocaleString()} د.ع
+🚚 التوصيل: 5,000 د.ع (كل المحافظات)
+💰 المجموع الكلي: ${totalMoney.toLocaleString()} د.ع`
+            );
+
+            const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${message}`;
+
+            fetch(url)
+                .then(res => {
+                    if(res.ok) {
+                        alert('تم إرسال طلبك بنجاح! شكراً لتسوقك من TechZone.');
+                        cart = [];
+                        updateCartUI();
+                        toggleModal('cart-modal');
+                        document.getElementById('order-form').reset();
+                    } else {
+                        alert('حدث خطأ أثناء إرسال الطلب.');
+                    }
+                })
+                .catch(() => alert('فشل الاتصال بالشبكة.'));
+        }
+    </script>
+</body>
+</html>
