@@ -17,7 +17,7 @@
 
         header { background: white; text-align: center; padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .logo-area { display: inline-block; cursor: pointer; user-select: none; min-height: 50px; background: transparent; }
-        /* تعديل لجعل خلفية الشعار شفافة وبدون أي حواف أو خلفية بيضاء مزعجة */
+        /* جعل خلفية الشعار شفافة وبدون أي حواف أو خلفية بيضاء مزعجة */
         .logo-img { max-height: 70px; display: block; margin: 0 auto; background: transparent; mix-blend-mode: multiply; object-fit: contain; }
 
         .categories-bar { max-width: 1200px; margin: 20px auto 0 auto; padding: 0 20px; display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; }
@@ -70,7 +70,7 @@
     </header>
 
     <div class="categories-bar" id="categories-bar"></div>
-    <div class="container" id="products-container" style="text-align: center; padding-top: 50px;">جاري تحميل المنتجات من السيرفر...</div>
+    <div class="container" id="products-container" style="text-align: center; padding-top: 50px;">لا توجد منتجات حالياً. يرجى إضافتها من لوحة التحكم.</div>
 
     <div class="cart-badge" onclick="toggleModal('cart-modal')">
         🛒 <span class="cart-count" id="cart-count">0</span>
@@ -155,44 +155,31 @@
         const CHAT_ID = "6582567289";
         const SHIPPING_FEE = 5000;
 
-        // تم تحديث معرفات الصور (IDs) لإجبار السيرفر على التحديث الفوري ومسح التكنيش القديم
-        const defaultProducts = [
-            { id: 101, name: "كاميرا مراقبة ذكية", category: "كاميرات", price: 20000, img: "https://images2.imgbox.com/71/34/8p2M8YI7_o.png", desc: "كاميرا مراقبة ذكية ومتحركة بدقة عالية.\n• تدعم الرؤية الليلية\n• ربط مباشر على الهاتف عبر الواي فاي\n• استشعار الحركة وإرسال تنبيهات." },
-            { id: 102, name: "جرس باب مدمج بكاميرا", category: "ادوات منزلية ذكية", price: 15000, img: "https://images2.imgbox.com/39/72/7p2WvWvB_o.png", desc: "جرس باب ذكي يتيح لك رؤية من يطرق بابك والتحدث معه مباشرة من هاتفك أينما كنت." },
-            { id: 103, name: "ستاند هاتف مغناطيس", category: "اكسسوارات الهواتف", price: 10000, img: "https://images2.imgbox.com/c4/14/GgD7V4g7_o.png", desc: "ستاند مغناطيسي قوي وثابت جداً للسيارة، يضمن حماية هاتفك وسهولة استخدامه أثناء القيادة." },
-            { id: 104, name: "كار بلاي لاسلكي", category: "مستلزمات السيارات الذكية", price: 65000, img: "https://images2.imgbox.com/d5/4b/vPxlNqfO_o.png", desc: "جهاز تحويل شاشة السيارة إلى نظام كار بلاي وأندرويد أوتو لاسلكي بالكامل بدون وايرات." }
-        ];
-
         let products = [];
         let cart = [];
         let currentCategory = "الكل";
 
+        // الاتصال المباشر بقاعدة البيانات وعرض منتجاتك المضافة فقط
         database.ref('products').on('value', (snapshot) => {
             const data = snapshot.val();
             if (data) {
                 products = Object.keys(data).map(key => ({ firebaseKey: key, ...data[key] }));
-                
-                // فحص ذكي: إذا كانت قاعدة البيانات تحتوي على روابط قديمة تالفة، يتم تصفيرها فوراً واستبدالها بالجديدة المضمونة
-                const hasOldLinks = products.some(p => p.img && p.img.includes('ibb.co')) || products.some(p => p.id < 100);
-                if (hasOldLinks) {
-                    database.ref('products').remove().then(() => {
-                        defaultProducts.forEach(p => database.ref('products').push(p));
-                    });
-                    return;
-                }
             } else {
-                products = defaultProducts;
-                defaultProducts.forEach(p => database.ref('products').push(p));
+                products = [];
             }
             displayProducts();
         }, (error) => {
             console.log("Firebase error:", error);
-            products = defaultProducts;
+            products = [];
             displayProducts();
         });
 
         function displayCategories() {
             const bar = document.getElementById('categories-bar');
+            if (products.length === 0) {
+                bar.innerHTML = '';
+                return;
+            }
             const categories = ["الكل", ...new Set(products.map(p => p.category || "عام"))];
             bar.innerHTML = '';
             categories.forEach(cat => {
@@ -210,10 +197,18 @@
         function displayProducts() {
             const container = document.getElementById('products-container');
             container.innerHTML = '';
+            
+            if(products.length === 0) {
+                container.innerHTML = "<p style='grid-column: 1/-1; font-weight: bold; color: #666;'>المتجر فارغ حالياً. اضغط على الشعار 5 مرات لفتح لوحة التحكم وإضافة منتجاتك الأولى! ✨</p>";
+                displayCategories();
+                updateAdminList();
+                return;
+            }
+
             const filtered = currentCategory === "الكل" ? products : products.filter(p => (p.category || "عام") === currentCategory);
 
             if(filtered.length === 0) {
-                container.innerHTML = "<p style='grid-column: 1/-1;'>لا توجد منتجات حالياً.</p>";
+                container.innerHTML = "<p style='grid-column: 1/-1;'>لا توجد منتجات في هذا القسم.</p>";
                 return;
             }
 
@@ -222,7 +217,7 @@
                     <div class="product-card">
                         <span class="product-badge">${p.category || "عام"}</span>
                         <div class="img-container" onclick="viewProduct(${p.id})">
-                            <img src="${p.img}" alt="${p.name}" onerror="this.src='https://via.placeholder.com/150?text=TechZone'">
+                            <img src="${p.img}" alt="${p.name}" onerror="this.src='https://via.placeholder.com/150?text=No+Image'">
                         </div>
                         <h3 class="product-title">${p.name}</h3>
                         <p class="product-price">${p.price.toLocaleString()} د.ع</p>
@@ -303,7 +298,7 @@
             
             database.ref('products').push(newProduct).then(() => {
                 document.getElementById('add-product-form').reset();
-                alert('تم حفظ المنتج سحابياً وظهر الآن لجميع الزبائن! 🎉');
+                alert('تم حفظ المنتج سحابياً وظهر الآن في المتجر فوراً! 🎉');
             }).catch(err => alert('خطأ في الحفظ'));
         }
 
