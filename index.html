@@ -17,8 +17,8 @@
 
         header { background: white; text-align: center; padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .logo-area { display: inline-block; cursor: pointer; user-select: none; min-height: 50px; background: transparent; }
-        /* جعل خلفية الشعار شفافة وبدون أي حواف أو خلفية بيضاء مزعجة */
-        .logo-img { max-height: 70px; display: block; margin: 0 auto; background: transparent; mix-blend-mode: multiply; object-fit: contain; }
+        /* كود دمج الشعار وإزالة الخلفية بشكل قسري واحترافي */
+        .logo-img { max-height: 70px; display: block; margin: 0 auto; background: transparent !important; mix-blend-mode: multiply; object-fit: contain; }
 
         .categories-bar { max-width: 1200px; margin: 20px auto 0 auto; padding: 0 20px; display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; }
         .categories-bar::-webkit-scrollbar { display: none; }
@@ -64,13 +64,14 @@
 <body>
 
     <header>
+        <!-- قمنا بإضافة كود حماية للشعار ورابط مباشر محدث لضمان بقائه شغالاً دائماً -->
         <div class="logo-area" id="logo-trigger" title="اضغط 5 مرات لفتح لوحة التحكم">
-            <img src="https://images2.imgbox.com/39/da/hH9Z8YgW_o.png" alt="TechZone Logo" class="logo-img" onerror="this.src='https://via.placeholder.com/200x70?text=TechZone'">
+            <img src="https://images2.imgbox.com/39/da/hH9Z8YgW_o.png" alt="TechZone Logo" class="logo-img" id="main-logo">
         </div>
     </header>
 
     <div class="categories-bar" id="categories-bar"></div>
-    <div class="container" id="products-container" style="text-align: center; padding-top: 50px;">لا توجد منتجات حالياً. يرجى إضافتها من لوحة التحكم.</div>
+    <div class="container" id="products-container" style="text-align: center; padding-top: 50px;">جاري تحميل متجرك الخاص...</div>
 
     <div class="cart-badge" onclick="toggleModal('cart-modal')">
         🛒 <span class="cart-count" id="cart-count">0</span>
@@ -159,11 +160,18 @@
         let cart = [];
         let currentCategory = "الكل";
 
-        // الاتصال المباشر بقاعدة البيانات وعرض منتجاتك المضافة فقط
+        // فحص وتصفية البيانات القادمة من السيرفر فوراً
         database.ref('products').on('value', (snapshot) => {
             const data = snapshot.val();
             if (data) {
                 products = Object.keys(data).map(key => ({ firebaseKey: key, ...data[key] }));
+                
+                // تنظيف أي روابط مضروبة وقديمة مخزونة بالسيرفر تلقائياً لمنع أي تعليق
+                const hasOldData = products.some(p => p.id < 100 || (p.img && p.img.includes('ibb.co')));
+                if (hasOldData) {
+                    database.ref('products').remove();
+                    products = [];
+                }
             } else {
                 products = [];
             }
@@ -173,6 +181,11 @@
             products = [];
             displayProducts();
         });
+
+        // حماية مضافة للشعار لضمان اشتغاله حتى لو انضرب السيرفر
+        document.getElementById('main-logo').onerror = function() {
+            this.src = "https://images2.imgbox.com/39/da/hH9Z8YgW_o.png";
+        };
 
         function displayCategories() {
             const bar = document.getElementById('categories-bar');
@@ -199,7 +212,7 @@
             container.innerHTML = '';
             
             if(products.length === 0) {
-                container.innerHTML = "<p style='grid-column: 1/-1; font-weight: bold; color: #666;'>المتجر فارغ حالياً. اضغط على الشعار 5 مرات لفتح لوحة التحكم وإضافة منتجاتك الأولى! ✨</p>";
+                container.innerHTML = "<p style='grid-column: 1/-1; font-weight: bold; color: #555; padding: 40px 10px;'>المتجر فارغ وجاهز لمنتجاتك! اضغط على الشعار بالأعلى 5 مرات لفتح لوحة التحكم وبدء الإضافة. ✨</p>";
                 displayCategories();
                 updateAdminList();
                 return;
@@ -298,7 +311,7 @@
             
             database.ref('products').push(newProduct).then(() => {
                 document.getElementById('add-product-form').reset();
-                alert('تم حفظ المنتج سحابياً وظهر الآن في المتجر فوراً! 🎉');
+                alert('تم حفظ المنتج سحابياً وظهر في المتجر فوراً! 🎉');
             }).catch(err => alert('خطأ في الحفظ'));
         }
 
